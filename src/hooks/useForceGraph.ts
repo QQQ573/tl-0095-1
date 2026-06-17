@@ -64,25 +64,25 @@ export function useForceGraph({ width, height, visiblePoints, visibleEdges }: Us
         'link',
         forceLink<SimNode, SimLink>(links)
           .id((d) => d.id)
-          .distance((d) => 80 + (d as SimLink).value * 2)
-          .strength(0.3)
+          .distance((d) => 60 + (d as SimLink).value * 1.5)
+          .strength(0.6)
       )
       .force('charge', forceManyBody().strength((d) => {
         const node = d as SimNode;
         const point = visiblePoints.find((p) => p.id === node.id);
-        if (!point) return -200;
-        return point.isCategory ? -600 : -280;
+        if (!point) return -120;
+        return point.isCategory ? -280 : -120;
       }))
-      .force('center', forceCenter(width / 2, height / 2).strength(0.05))
+      .force('center', forceCenter(width / 2, height / 2).strength(0.25))
       .force(
         'collide',
         forceCollide<SimNode>().radius((d) => {
           const point = visiblePoints.find((p) => p.id === d.id);
           if (!point) return 20;
           return getRadiusByWeight(point.educationWeight, point.isCategory) + 8;
-        }).strength(0.8)
+        }).strength(0.7)
       )
-      .alphaDecay(0.02);
+      .alphaDecay(0.08);
 
     simulationRef.current = simulation;
 

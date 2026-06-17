@@ -15,21 +15,22 @@ export function RoutePlanner() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     const measure = () => {
+      if (containerRef.current) {
+        setDimensions({
+          w: containerRef.current.clientWidth,
+          h: containerRef.current.clientHeight,
+        });
+      }
+    };
+    const debouncedMeasure = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => {
-        if (containerRef.current) {
-          setDimensions({
-            w: containerRef.current.clientWidth,
-            h: containerRef.current.clientHeight,
-          });
-        }
-      }, 300);
+      timer = setTimeout(measure, 300);
     };
     measure();
-    window.addEventListener('resize', measure);
+    window.addEventListener('resize', debouncedMeasure);
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('resize', measure);
+      window.removeEventListener('resize', debouncedMeasure);
     };
   }, []);
 

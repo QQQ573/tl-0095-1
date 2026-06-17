@@ -10,6 +10,7 @@ interface GraphEdgeProps {
   toPos: NodePosition;
   fromPoint?: Point;
   toPoint?: Point;
+  index?: number;
 }
 
 export const GraphEdge = memo(function GraphEdge({
@@ -18,6 +19,7 @@ export const GraphEdge = memo(function GraphEdge({
   toPos,
   fromPoint,
   toPoint,
+  index = 0,
 }: GraphEdgeProps) {
   const selectedChain = useRouteStore((s) => s.selectedChain);
   const category = fromPoint?.category ?? toPoint?.category ?? 'humanity';
@@ -65,8 +67,10 @@ export const GraphEdge = memo(function GraphEdge({
   const labelX = (startX + cpx + endX) / 3;
   const labelY = (startY + cpy + endY) / 3;
 
+  const flowColor = isInChain ? '#f59e0b' : baseColor;
+
   return (
-    <g style={{ opacity, transition: 'opacity 300ms ease' }}>
+    <g style={{ opacity, transition: 'opacity 300ms ease', animation: `fadeSlideIn 600ms ${index * 30 + 200}ms both ease-out` }}>
       <path
         d={path}
         fill="none"
@@ -86,6 +90,17 @@ export const GraphEdge = memo(function GraphEdge({
           filter: isInChain ? `drop-shadow(0 0 6px ${baseColor})` : 'none',
         }}
       />
+      {isInChain && (
+        <path
+          d={path}
+          fill="none"
+          stroke={flowColor}
+          strokeWidth={Math.max(2, strokeWidth - 1)}
+          strokeLinecap="round"
+          className="edge-flow-animation"
+          opacity={0.85}
+        />
+      )}
       <polygon
         points={`${endX},${endY} ${arrowX1},${arrowY1} ${arrowX2},${arrowY2}`}
         fill={isInChain ? '#f59e0b' : baseColor}

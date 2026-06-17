@@ -2,7 +2,6 @@ import { memo, useRef } from 'react';
 import type { Point } from '../../shared/types';
 import { useRouteStore } from '../store/useRouteStore';
 import { getRadiusByWeight, getCategoryColor } from '../utils/graphLayout';
-import { Landmark, Leaf, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface GraphNodeProps {
   point: Point;
@@ -48,7 +47,41 @@ export const GraphNode = memo(function GraphNode({
     }
   };
 
-  const Icon = point.category === 'humanity' ? Landmark : Leaf;
+  const getIconPath = () => {
+    if (point.isCategory) {
+      if (isCollapsed) {
+        return (
+          <polygon
+            points={`${-radius * 0.3},${-radius * 0.35} ${-radius * 0.3},${radius * 0.35} ${radius * 0.35},0`}
+            fill={color}
+          />
+        );
+      }
+      return (
+        <polygon
+          points={`${-radius * 0.35},${-radius * 0.3} ${radius * 0.35},${-radius * 0.3} 0,${radius * 0.35}`}
+          fill={color}
+        />
+      );
+    }
+    if (point.category === 'humanity') {
+      return (
+        <g fill={color}>
+          <rect x={-radius * 0.35} y={-radius * 0.25} width={radius * 0.7} height={radius * 0.5} rx={2} />
+          <rect x={-radius * 0.25} y={-radius * 0.4} width={radius * 0.5} height={radius * 0.18} rx={1} />
+          <rect x={-radius * 0.08} y={-radius * 0.05} width={radius * 0.16} height={radius * 0.3} />
+        </g>
+      );
+    }
+    return (
+      <g fill={color}>
+        <ellipse cx={0} cy={radius * 0.05} rx={radius * 0.4} ry={radius * 0.2} />
+        <path d={`M ${-radius * 0.25} ${radius * 0.05} L ${-radius * 0.25} ${-radius * 0.3} Q ${-radius * 0.12} ${-radius * 0.45} 0 ${-radius * 0.3} Q ${radius * 0.12} ${-radius * 0.45} ${radius * 0.25} ${-radius * 0.3} L ${radius * 0.25} ${radius * 0.05}`} />
+        <circle cx={-radius * 0.1} cy={-radius * 0.1} r={radius * 0.06} fill="#0f172a" />
+        <circle cx={radius * 0.1} cy={-radius * 0.1} r={radius * 0.06} fill="#0f172a" />
+      </g>
+    );
+  };
 
   return (
     <g
@@ -59,6 +92,7 @@ export const GraphNode = memo(function GraphNode({
         opacity,
         transition: 'opacity 300ms ease',
         animation: `nodeEnter 500ms ${index * 40}ms both ease-out`,
+        pointerEvents: 'all',
       }}
       onMouseDown={(e) => !point.isCategory && onMouseDown(e, point.id)}
       onClick={handleClick}
@@ -67,7 +101,8 @@ export const GraphNode = memo(function GraphNode({
         onDoubleClick(point.id);
       }}
       className={isPulsing ? 'graph-node-pulse' : ''}
-    >
+      data-point-id={point.id}
+      pointerEvents="all">
       <circle
         r={radius + 6}
         fill={color}
@@ -92,44 +127,21 @@ export const GraphNode = memo(function GraphNode({
         style={{ transition: 'stroke-width 200ms ease' }}
       />
       {isInChain && !point.isCategory && (
-        <text
-          x={radius - 6}
-          y={-radius + 10}
-          fill="#fff"
-          fontSize={11}
-          fontWeight={700}
-          textAnchor="middle"
-        >
-          <tspan>
-            <circle cx={0} cy={0} r={9} fill="#f59e0b" />
-            <tspan x={0} y={4} textAnchor="middle" fill="#1e3a5f" fontSize={11} fontWeight={800}>
-              {chainOrder + 1}
-            </tspan>
-          </tspan>
-        </text>
+        <g>
+          <circle cx={radius - 6} cy={-radius + 10} r={9} fill="#f59e0b" />
+          <text
+            x={radius - 6}
+            y={-radius + 14}
+            textAnchor="middle"
+            fill="#1e3a5f"
+            fontSize={11}
+            fontWeight={800}
+          >
+            {chainOrder + 1}
+          </text>
+        </g>
       )}
-      <foreignObject x={-radius * 0.55} y={-radius * 0.55} width={radius * 1.1} height={radius * 1.1}>
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color,
-          }}
-        >
-          {point.isCategory ? (
-            isCollapsed ? (
-              <ChevronRight size={Math.max(16, radius * 0.7)} strokeWidth={2.5} />
-            ) : (
-              <ChevronDown size={Math.max(16, radius * 0.7)} strokeWidth={2.5} />
-            )
-          ) : (
-            <Icon size={Math.max(14, radius * 0.6)} strokeWidth={2} />
-          )}
-        </div>
-      </foreignObject>
+      {getIconPath()}
       <text
         y={radius + 16}
         textAnchor="middle"
@@ -140,7 +152,6 @@ export const GraphNode = memo(function GraphNode({
           fontFamily: '"Noto Serif SC", "Noto Sans SC", serif',
           textShadow: '0 1px 3px rgba(0,0,0,0.6)',
           pointerEvents: 'none',
-          whiteSpace: 'nowrap',
         }}
       >
         {point.name}

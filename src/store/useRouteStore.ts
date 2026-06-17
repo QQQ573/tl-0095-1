@@ -2,13 +2,6 @@ import { create } from 'zustand';
 import type { Point, Edge, NodePosition } from '../../shared/types';
 import { mockRouteData } from '../data/mockRouteData';
 
-interface ViewBox {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
 interface RouteState {
   points: Point[];
   edges: Edge[];
@@ -18,7 +11,6 @@ interface RouteState {
   detailPointId: string | null;
   searchResultId: string | null;
   pulseIds: Set<string>;
-  viewBox: ViewBox;
   zoomAction: { type: 'in' | 'out' | 'reset'; ts: number } | null;
 
   setNodePosition: (id: string, pos: Partial<NodePosition>) => void;
@@ -30,23 +22,68 @@ interface RouteState {
   setSearchResult: (pointId: string | null) => void;
   triggerPulse: (pointId: string, duration?: number) => void;
   initPositions: (positions: Record<string, NodePosition>) => void;
-  setViewBox: (vb: ViewBox) => void;
   requestZoom: (type: 'in' | 'out' | 'reset') => void;
   clearZoomAction: () => void;
 }
 
 const MAX_CHAIN_LENGTH = 6;
 
+function createInitialPositions(points: Point[], width = 900, height = 700): Record<string, NodePosition> {
+  const positions: Record<string, NodePosition> = {};
+  const categories = points.filter((p) => p.isCategory);
+  const regularPoints = points.filter((p) => !p.isCategory);
+
+  categories.forEach((cat, i) => {
+    const cx = width * (i === 0 ? 0.25 : 0.75);
+    const cy = height * 0.28;
+    positions[cat.id] = { id: cat.id, x: cx, y: cy };
+  });
+
+  const catGroups: Record<string, Point[]> = {};
+  for (const p of regularPoints) {
+    const pid = p.parentId || 'cat-humanity';
+    if (!catGroups[pid]) catGroups[pid] = [];
+    catGroups[pid].push(p);
+  }
+
+  for (const cat of categories) {
+    const group = catGroups[cat.id] || [];
+    const catPos = positions[cat.id];
+    if (!catPos) continue;
+    const radiusX = width * 0.18;
+    const radiusY = height * 0.28;
+    const startAngle = cat.id === 'cat-humanity' ? -Math.PI * 0.7 : -Math.PI * 0.3;
+
+    group.forEach((p, i) => {
+      const angle = startAngle + (i / Math.max(group.length - 1, 1)) * Math.PI * 0.8;
+      const x = catPos.x + Math.cos(angle) * radiusX + (Math.random() - 0.5) * 30;
+      const y = catPos.y + Math.sin(angle) * radiusY + 60 + (Math.random() - 0.5) * 30;
+      positions[p.id] = { id: p.id, x, y };
+    });
+  }
+
+  for (const p of regularPoints) {
+    if (!positions[p.id]) {
+      positions[p.id] = {
+        id: p.id,
+        x: width / 2 + (Math.random() - 0.5) * 400,
+        y: height / 2 + (Math.random() - 0.5) * 300,
+      };
+    }
+  }
+
+  return positions;
+}
+
 export const useRouteStore = create<RouteState>((set, get) => ({
   points: mockRouteData.points,
   edges: mockRouteData.edges,
-  nodePositions: {},
+  nodePositions: createInitialPositions(mockRouteData.points),
   selectedChain: [],
   collapsedCategories: new Set(),
   detailPointId: null,
   searchResultId: null,
   pulseIds: new Set(),
-  viewBox: { x: 0, y: 0, w: 1200, h: 800 },
   zoomAction: null,
 
   setNodePosition: (id, pos) =>
@@ -105,8 +142,6 @@ export const useRouteStore = create<RouteState>((set, get) => ({
   },
 
   initPositions: (positions) => set({ nodePositions: positions }),
-
-  setViewBox: (vb) => set({ viewBox: vb }),
 
   requestZoom: (type) => set({ zoomAction: { type, ts: Date.now() } }),
 
